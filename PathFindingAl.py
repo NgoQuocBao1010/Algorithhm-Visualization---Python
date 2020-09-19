@@ -42,19 +42,19 @@ class Spot:
 		self.color = WHITE
 
 	def makeVisited(self):
-		return self.color = RED
+		self.color = RED
 
 	def makeOpened(self):
-		return self.color = GREEN
+		self.color = GREEN
 
 	def makeBarrier(self):
-		return self.color = BLACK
+		self.color = BLACK
 
 	def makeStart(self):
-		return self.color = ORANGE
+		self.color = ORANGE
 
 	def makeEnd(self):
-		return self.color = TURQUOISE
+		self.color = TURQUOISE
 
 	# ======================== Check The State Of Node ========================
 	def isVisited(self):
@@ -85,8 +85,8 @@ def makeGrid(rows, width):
 	for row in range(rows):
 		grid.append([])
 		for col in range(rows):
-			spot = Spot(rol, col, gap, rows)
-			grid[i].append(spot)
+			spot = Spot(row, col, gap, rows)
+			grid[row].append(spot)
 
 	return grid
 
@@ -94,9 +94,9 @@ def makeGrid(rows, width):
 def drawGrid(win, rows, width):
 	gap = width // rows
 	for row in range(rows):
-		pygame.draw.rect(win, GREY, (0, row * gap), (width, row * gap))
+		pygame.draw.line(win, GREY, (0, row * gap), (width, row * gap))
 		for col in range(rows):
-			pygame.draw.rect(win, GREY, (col * gap, 0), (col * gap, width))
+			pygame.draw.line(win, GREY, (col * gap, 0), (col * gap, width))
 
 
 
@@ -118,3 +118,53 @@ def getClikedPos(pos, rows, width):
 
 	row = y // gap
 	col = x // gap
+
+	return row, col
+
+
+def main(win, width):
+	ROWS = 50
+	grid = makeGrid(ROWS, width)
+
+	start = None
+	end = None
+
+	run = True
+
+	while run:
+		draw(win, ROWS, width, grid)
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				run = False
+
+			if pygame.mouse.get_pressed()[0]:
+				pos = pygame.mouse.get_pos()
+				row, col = getClikedPos(pos, ROWS, width)
+				spot = grid[row][col]
+
+				if not start and spot != end:
+					start = spot
+					start.makeStart()
+
+				elif not end and spot != start:
+					end = spot 
+					end.makeEnd()
+
+				elif spot != end and spot != start:
+					spot.makeBarrier()
+
+	pygame.quit()
+
+
+
+
+main(WIN, WIDTH)
+
+
+
+
+
+
+
+
+
