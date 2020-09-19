@@ -3,7 +3,7 @@ import math
 from queue import PriorityQueue
 
 # Window's Configuration
-WIDTH = 800
+WIDTH = 500
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("Path finding Algorithm")
 
@@ -56,6 +56,9 @@ class Spot:
 	def makeEnd(self):
 		self.color = TURQUOISE
 
+	def makePath(self):
+		self.color = PURPLE
+
 	# ======================== Check The State Of Node ========================
 	def isVisited(self):
 		return self.color == RED
@@ -71,6 +74,26 @@ class Spot:
 
 	def isEnd(self):
 		return self.color == TURQUOISE
+
+	# Get the neighbours of the spot:
+	def getNeighbours(self, grid):
+		self.neighbours = []
+
+		# Check the below spot
+		if self.row < self.total_rows - 1 and not grid[self.row + 1][self.col].isBarrier():
+			self.neighbours.append(grid[self.row + 1][self.col])
+
+		# Check the above spot
+		if self.row > 0 and not grid[self.row - 1][self.col].isBarrier():
+			self.neighbours.append(grid[self.row - 1][self.col])
+
+		# Check the right spot
+		if self.col < self.total_rows - 1 and not grid[self.row][self.col + 1].isBarrier():
+			self.neighbours.append(grid[self.row][self.col + 1])
+
+		# Check the below spot
+		if self.col > 0 and not grid[self.row][self.col - 1].isBarrier():
+			self.neighbours.append(grid[self.row][self.col - 1])
 
 	# Draw Node
 	def draw(self, win):
@@ -91,6 +114,7 @@ def makeGrid(rows, width):
 	return grid
 
 
+# Draw the grid
 def drawGrid(win, rows, width):
 	gap = width // rows
 	for row in range(rows):
@@ -99,7 +123,7 @@ def drawGrid(win, rows, width):
 			pygame.draw.line(win, GREY, (col * gap, 0), (col * gap, width))
 
 
-
+# Draw the whole window
 def draw(win, rows, width, grid):
 	win.fill(WHITE)
 
@@ -120,6 +144,69 @@ def getClikedPos(pos, rows, width):
 	col = x // gap
 
 	return row, col
+
+
+def reconstructPath(prev, grid, end, draw):
+	e_row, e_col = end.getPosition()
+	current = (e_row, e_col)
+	while current is not None:
+		grid[current[0]][current[1]].makePath()
+		current = prev[current[0]][current[1]]
+
+
+# ========================== Breadth First Search Algorithm ========================== #
+def algorithm(draw, grid, start, end):
+	rows = len(grid)
+	distance 		= [[-1 for spot in range(rows + 1)] for row in range(rows + 1)]
+	prev 			= [[None for spot in range(rows + 1)] for row in range(rows + 1)]
+
+	from collections import deque
+	row_queue = deque()
+	col_queue = deque()
+
+	s_row, s_col = start.getPosition()
+	e_row, e_col = end.getPosition()
+
+	row_queue.append(s_row)
+	col_queue.append(s_col)
+	distance[s_row][s_col] = 0
+
+	while len(row_queue) > 0:
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				pygame.quit()
+
+		row = row_queue.popleft()
+		col = col_queue.popleft()
+		spot = grid[row][col]
+
+		if row == e_row and col == e_col:
+			reconstructPath(prev, grid, end, draw)
+			end.makeEnd()
+			start.makeStart()
+			return True
+
+		if row != s_row and col != s_col:
+			spot.makeVisited()
+
+		for neighbour in spot.neighbours:
+			n_row, n_col = neighbour.getPosition()
+
+			if distance[n_row][n_col] == -1:
+				distance[n_row][n_col] = distance[row][col] + 1
+				row_queue.append(n_row)
+				col_queue.append(n_col)
+				prev[n_row][n_col] = (row, col)
+				grid[n_row][n_col].makeOpened()
+			else:
+				spot.makeVisited()
+		draw()
+
+
+	return False
+
+
+
 
 
 def main(win, width):
@@ -152,6 +239,30 @@ def main(win, width):
 
 				elif spot != end and spot != start:
 					spot.makeBarrier()
+
+			elif pygame.mouse.get_pressed()[2]:
+				pos = pygame.mouse.get_pos()
+				row, col = getClikedPos(pos, ROWS, width)
+				spot = grid[row][col]
+				spot.reset()
+
+				if spot == start:
+					start = None
+				elif spot == end:
+					end = None
+
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_SPACE and start and end:
+					for row in grid:
+						for spot in row:
+							spot.getNeighbours(grid)
+					algorithm(lambda: draw(win, ROWS, width, grid), grid, start, end)
+
+				if event.key == pygame.K_c:
+					start = None
+					end = None
+					grid = makeGrid(ROWS, width)
+
 
 	pygame.quit()
 
