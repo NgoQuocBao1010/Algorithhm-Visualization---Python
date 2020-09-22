@@ -1,9 +1,10 @@
 import pygame
 import random
 import math
+import time
 
 # Window's Configuration
-WIDTH = 600
+WIDTH = 800
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("DFS Algorithm")
 
@@ -22,7 +23,7 @@ nodesImages = [pygame.image.load('./images/1.png'),
 # Color Variables
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
-BLUE = (0, 255, 0)
+BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -31,13 +32,12 @@ ORANGE = (255, 165 ,0)
 GREY = (128, 128, 128)
 TURQUOISE = (64, 224, 208)
 
-
 class Node:
 	def __init__(self, x, y, order):
 		self.x = x
 		self.y = y
 		self.order = order
-		self.radius = 40
+		self.radius = 47
 		self.borderWidth = 5
 		self.color = BLACK
 		self.edges = []
@@ -56,7 +56,7 @@ class Node:
 		return self.x, self.y
 
 	def draw(self, win):
-		win.blit(nodesImages[self.order - 1], (self.x - 45, self.y - 40))
+		win.blit(nodesImages[self.order - 1], (self.x - 45, self.y - 43))
 		pygame.draw.circle(win, self.color, (self.x, self.y), self.radius, self.borderWidth)
 
 	def __eq__(self, other):
@@ -69,11 +69,19 @@ class Node:
 	def __str__(self):
 		return str(self.order)
 
+	# color config
 	def reset(self):
 		self.color = BLACK
 
 	def makeDragged(self):
 		self.color = GREEN
+
+	def makeVisited(self):
+		self.color = RED
+
+	def makeOpened(self):
+		self.color = GREEN
+
 
 
 
@@ -82,13 +90,13 @@ def makeGrid(nodes, width):
 	nodes_set = []
 
 	while len(nodes_set) < nodes:
-		x = random.randint(45, width - 45)
-		y = random.randint(45, width - 45)
+		x = random.randint(50, width - 45)
+		y = random.randint(50, width - 45)
 
 		check = True
 		if len(nodes_set) != 0:
 			for e_x, e_y in nodes_set:
-				if abs(e_x - x) < 90 and abs(e_y - y) < 90:
+				if abs(e_x - x) < 120 and abs(e_y - y) < 120:
 					check = False
 					break
 
@@ -118,20 +126,7 @@ def draw(win, grid, width, lineConfig=(0, 0, 0, 0)):
 	pygame.display.update()
 
 
-# def dfs(grid, visited, components, count, nodeAt):
-# 	count += 1
-# 	visited[nodeAt] = True
-# 	components[nodeAt] = count 
-
-# 	for nei in grid[nodeAt - 1].neighbours:
-# 		if not visited[nodeAt]:
-# 			dfs(grid, visited, components, count, nei.order)
-
-# 	return count
-
-
-
-def algorithm(grid, width):
+def algorithm(draw, grid):
 	# for node in grid:
 	# 	print('\n')
 	# 	print(str(node.order) + " : ", end=" ")
@@ -144,22 +139,31 @@ def algorithm(grid, width):
 	visited = [False] * (nodes + 1)
 
 	def dfs(nodeAt):
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				pygame.quit()
+		draw()
+		time.sleep(0.3)
 		nonlocal visited, components, grid, count
 		visited[nodeAt] = True
 		components[nodeAt] = count
-
-		for nei in grid[nodeAt - 1].neighbours:
+		node = grid[nodeAt - 1]
+		node.makeVisited()
+		for nei in node.neighbours:
 			if not visited[nei.order]:
-				print(nei.order)
 				dfs(nei.order)
 
+
 	for node in range(1, nodes + 1):
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				pygame.quit()
 		if not visited[node]:
+			time.sleep(0.3)
 			count += 1
 			dfs(node)
-
-	print()
 	print(count)
+	return True
 
 
 
@@ -206,7 +210,12 @@ def main(win, width):
 
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_SPACE:
-					algorithm(grid, width)
+					algorithm(lambda: draw(win, grid, width), grid)
+
+				if event.key == pygame.K_c:
+					for node in grid:
+						node.reset()
+						node.neighbours = []
 							
 	pygame.quit()
 

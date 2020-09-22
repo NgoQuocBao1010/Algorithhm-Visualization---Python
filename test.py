@@ -1,6 +1,11 @@
 # def foo(count):
 # 	count += 5
 
+a ={
+	'x': 1,
+	"y": 2,
+	"z": 3,
+}
 
 def bar():
 	v = [False] * 3
@@ -11,5 +16,5 @@ def bar():
 	return v
 
 
-a = bar()
-print(a)
+
+print(a[0])
