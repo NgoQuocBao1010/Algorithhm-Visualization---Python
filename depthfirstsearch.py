@@ -3,8 +3,9 @@ import random
 import math
 import time
 
+pygame.init()
 # Window's Configuration
-WIDTH = 800
+WIDTH = 600
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("DFS Algorithm")
 
@@ -31,6 +32,9 @@ PURPLE = (128, 0, 128)
 ORANGE = (255, 165 ,0)
 GREY = (128, 128, 128)
 TURQUOISE = (64, 224, 208)
+BROWN = (146, 43, 33)
+LIGHTGREEN = (26, 188, 156)
+LIGHTPURPLE = (187, 143, 206)
 
 class Node:
 	def __init__(self, x, y, order):
@@ -69,7 +73,7 @@ class Node:
 	def __str__(self):
 		return str(self.order)
 
-	# color config
+	# color configb
 	def reset(self):
 		self.color = BLACK
 
@@ -108,9 +112,14 @@ def makeGrid(nodes, width):
 	return grid
 
 
-def draw(win, grid, width, lineConfig=(0, 0, 0, 0)):
+def draw(win, grid, width, components, components_font, lineConfig=(0, 0, 0, 0)):
 	win.fill(WHITE)
 	s_x, s_y, e_x, e_y = lineConfig
+
+	if components != 0:
+		text = components_font.render("There are " + str(components) + " components!", 1, BLACK)
+		win.blit(text, (290, 10))
+
 
 	if s_x != 0:
 		pygame.draw.line(win, GREY, (s_x, s_y), (e_x, e_y), 5)
@@ -127,15 +136,9 @@ def draw(win, grid, width, lineConfig=(0, 0, 0, 0)):
 
 
 def algorithm(draw, grid):
-	# for node in grid:
-	# 	print('\n')
-	# 	print(str(node.order) + " : ", end=" ")
-	# 	for nei in node.neighbours:
-	# 		print(nei, end=" ")
-	
+	colors = [ORANGE, TURQUOISE, BLUE, RED, GREEN, LIGHTGREEN, PURPLE, BROWN, LIGHTPURPLE, YELLOW]
 	nodes = len(grid)
 	count = 0
-	components = [None] * (nodes + 1)
 	visited = [False] * (nodes + 1)
 
 	def dfs(nodeAt):
@@ -143,12 +146,11 @@ def algorithm(draw, grid):
 			if event.type == pygame.QUIT:
 				pygame.quit()
 		draw()
-		time.sleep(0.3)
-		nonlocal visited, components, grid, count
+		time.sleep(0.4)
+		nonlocal visited, grid, count, colors
 		visited[nodeAt] = True
-		components[nodeAt] = count
 		node = grid[nodeAt - 1]
-		node.makeVisited()
+		node.color = colors[count - 1]
 		for nei in node.neighbours:
 			if not visited[nei.order]:
 				dfs(nei.order)
@@ -159,11 +161,10 @@ def algorithm(draw, grid):
 			if event.type == pygame.QUIT:
 				pygame.quit()
 		if not visited[node]:
-			time.sleep(0.3)
+			time.sleep(0.2)
 			count += 1
 			dfs(node)
-	print(count)
-	return True
+	return count
 
 
 
@@ -174,48 +175,56 @@ def main(win, width):
 	run = True
 	grid = makeGrid(NODES, width)
 	s_x = s_y = e_x = e_y = 0
+	components = 0
+	components_font = pygame.font.SysFont('comicsans', 30, True)
 
+	startedAl = False
 	while run:
-		draw(win, grid, width, (s_x, s_y, e_x, e_y))
+		draw(win, grid, width, components, components_font, (s_x, s_y, e_x, e_y))
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				run = False
 
-			if event.type == pygame.MOUSEBUTTONDOWN:
-				if event.button == 1:
-					mouse_x, mouse_y = event.pos
-					for node in grid:
-						if node.isCliked((mouse_x, mouse_y)):
-							node.dragging = True
-							node.makeDragged()
+			if not startedAl:
+				if event.type == pygame.MOUSEBUTTONDOWN:
+					if event.button == 1:
+						mouse_x, mouse_y = event.pos
+						for node in grid:
+							if node.isCliked((mouse_x, mouse_y)):
+								node.dragging = True
+								node.makeDragged()
 
-			elif event.type == pygame.MOUSEBUTTONUP: 
-				if event.button == 1:
-					mouse_x, mouse_y = event.pos
-					for node in grid:
-						if node.dragging:
-							node.dragging = False
-							s_x = s_y = e_x = e_y = 0
-							node.reset()
-							for node2 in grid:
-								if node2 != node and node2.isCliked((mouse_x, mouse_y)) and node2 not in node.neighbours:
-									node.neighbours.append(node2)
-									node2.neighbours.append(node)
+				elif event.type == pygame.MOUSEBUTTONUP: 
+					if event.button == 1:
+						mouse_x, mouse_y = event.pos
+						for node in grid:
+							if node.dragging:
+								node.dragging = False
+								s_x = s_y = e_x = e_y = 0
+								node.reset()
+								for node2 in grid:
+									if node2 != node and node2.isCliked((mouse_x, mouse_y)) and node2 not in node.neighbours:
+										node.neighbours.append(node2)
+										node2.neighbours.append(node)
 
-			elif event.type == pygame.MOUSEMOTION:
-				for node in grid:
-						if node.dragging:
-							s_x, s_y = node.clickedPosition
-							e_x, e_y = event.pos
+				elif event.type == pygame.MOUSEMOTION:
+					for node in grid:
+							if node.dragging:
+								s_x, s_y = node.clickedPosition
+								e_x, e_y = event.pos
+
+				if event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_SPACE:
+						components = algorithm(lambda: draw(win, grid, width, components, components_font), grid)
+						startedAl = True
 
 			if event.type == pygame.KEYDOWN:
-				if event.key == pygame.K_SPACE:
-					algorithm(lambda: draw(win, grid, width), grid)
-
 				if event.key == pygame.K_c:
 					for node in grid:
+						components = 0
 						node.reset()
 						node.neighbours = []
+						startedAl = False
 							
 	pygame.quit()
 
