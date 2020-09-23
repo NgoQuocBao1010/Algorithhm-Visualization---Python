@@ -5,7 +5,7 @@ import time
 
 pygame.init()
 # Window's Configuration
-WIDTH = 600
+WIDTH = 800
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("DFS Algorithm")
 
@@ -36,6 +36,8 @@ BROWN = (146, 43, 33)
 LIGHTGREEN = (26, 188, 156)
 LIGHTPURPLE = (187, 143, 206)
 
+
+# Node Config
 class Node:
 	def __init__(self, x, y, order):
 		self.x = x
@@ -49,7 +51,8 @@ class Node:
 		self.dragging = False
 		self.clickedPosition = ()
 
-	def isCliked(self, point):
+	# Check if the mouse is above the Node
+	def isAbove(self, point):
 		p_x, p_y = point
 		self.clickedPosition = (p_x, p_y)
 		distance = math.sqrt((self.x - p_x) * (self.x - p_x) + (self.y - p_y) * (self.y - p_y))
@@ -63,17 +66,7 @@ class Node:
 		win.blit(nodesImages[self.order - 1], (self.x - 45, self.y - 43))
 		pygame.draw.circle(win, self.color, (self.x, self.y), self.radius, self.borderWidth)
 
-	def __eq__(self, other):
-		return other.x == self.x and other.y == self.y
-
-
-	def __ne__(self, other):
-		return other.x != self.x and other.y != self.y
-
-	def __str__(self):
-		return str(self.order)
-
-	# color configb
+	# color config
 	def reset(self):
 		self.color = BLACK
 
@@ -86,9 +79,18 @@ class Node:
 	def makeOpened(self):
 		self.color = GREEN
 
+	# Special Method
+	def __eq__(self, other):
+		return other.x == self.x and other.y == self.y
+
+	def __ne__(self, other):
+		return other.x != self.x and other.y != self.y
+
+	def __str__(self):
+		return str(self.order)
 
 
-
+# A grid to contain all the nodes
 def makeGrid(nodes, width):
 	grid = []
 	nodes_set = []
@@ -100,7 +102,7 @@ def makeGrid(nodes, width):
 		check = True
 		if len(nodes_set) != 0:
 			for e_x, e_y in nodes_set:
-				if abs(e_x - x) < 120 and abs(e_y - y) < 120:
+				if abs(e_x - x) < 120 and abs(e_y - y) < 120: # create distance between nodes
 					check = False
 					break
 
@@ -112,17 +114,20 @@ def makeGrid(nodes, width):
 	return grid
 
 
+# Draw to the screen
 def draw(win, grid, width, components, components_font, lineConfig=(0, 0, 0, 0)):
 	win.fill(WHITE)
-	s_x, s_y, e_x, e_y = lineConfig
 
+	# Draw the line while dragging
+	s_x, s_y, e_x, e_y = lineConfig
+	if s_x != 0:
+		pygame.draw.line(win, GREY, (s_x, s_y), (e_x, e_y), 5)
+
+	# Print result to the screen
 	if components != 0:
 		text = components_font.render("There are " + str(components) + " components!", 1, BLACK)
 		win.blit(text, (290, 10))
 
-
-	if s_x != 0:
-		pygame.draw.line(win, GREY, (s_x, s_y), (e_x, e_y), 5)
 
 	for node in grid:
 		for neighbour in node.neighbours:
@@ -135,8 +140,9 @@ def draw(win, grid, width, components, components_font, lineConfig=(0, 0, 0, 0))
 	pygame.display.update()
 
 
+# ========================== Breadth First Search Algorithm ========================== #
 def algorithm(draw, grid):
-	colors = [ORANGE, TURQUOISE, BLUE, RED, GREEN, LIGHTGREEN, PURPLE, BROWN, LIGHTPURPLE, YELLOW]
+	colors = [RED, GREEN, TURQUOISE, ORANGE, BLUE, LIGHTGREEN, PURPLE, BROWN, LIGHTPURPLE, YELLOW]
 	nodes = len(grid)
 	count = 0
 	visited = [False] * (nodes + 1)
@@ -146,7 +152,8 @@ def algorithm(draw, grid):
 			if event.type == pygame.QUIT:
 				pygame.quit()
 		draw()
-		time.sleep(0.4)
+		time.sleep(0.4) 
+
 		nonlocal visited, grid, count, colors
 		visited[nodeAt] = True
 		node = grid[nodeAt - 1]
@@ -185,12 +192,14 @@ def main(win, width):
 			if event.type == pygame.QUIT:
 				run = False
 
-			if not startedAl:
+			if not startedAl: # check if the algorithm started
+
+				## Check for dragging ##
 				if event.type == pygame.MOUSEBUTTONDOWN:
 					if event.button == 1:
 						mouse_x, mouse_y = event.pos
 						for node in grid:
-							if node.isCliked((mouse_x, mouse_y)):
+							if node.isAbove((mouse_x, mouse_y)):
 								node.dragging = True
 								node.makeDragged()
 
@@ -203,7 +212,7 @@ def main(win, width):
 								s_x = s_y = e_x = e_y = 0
 								node.reset()
 								for node2 in grid:
-									if node2 != node and node2.isCliked((mouse_x, mouse_y)) and node2 not in node.neighbours:
+									if node2 != node and node2.isAbove((mouse_x, mouse_y)) and node2 not in node.neighbours:
 										node.neighbours.append(node2)
 										node2.neighbours.append(node)
 
@@ -212,14 +221,15 @@ def main(win, width):
 							if node.dragging:
 								s_x, s_y = node.clickedPosition
 								e_x, e_y = event.pos
+				##------------------------##
 
 				if event.type == pygame.KEYDOWN:
-					if event.key == pygame.K_SPACE:
+					if event.key == pygame.K_SPACE: # Press Space to begin the al
 						components = algorithm(lambda: draw(win, grid, width, components, components_font), grid)
 						startedAl = True
 
 			if event.type == pygame.KEYDOWN:
-				if event.key == pygame.K_c:
+				if event.key == pygame.K_c: # Press C to restart
 					for node in grid:
 						components = 0
 						node.reset()
