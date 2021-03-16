@@ -3,7 +3,7 @@ import math
 from queue import PriorityQueue
 
 # Window's Configuration
-WIDTH = 800
+WIDTH = 900
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("Path finding Algorithm")
 
@@ -210,7 +210,7 @@ def algorithm(draw, grid, start, end):
 
 
 def main(win, width):
-	ROWS = 50
+	ROWS = 9
 	grid = makeGrid(ROWS, width)
 
 	start = None
