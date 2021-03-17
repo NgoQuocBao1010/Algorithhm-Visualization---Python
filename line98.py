@@ -1,12 +1,15 @@
-import pygame, sys
-import math, time, random
+import pygame
+import sys
+import math
+import time
+import random
 
 
 pygame.init()
 # Window's Configuration
-WIDTH = 450         # height and width of window
-ROWS = 9            # rows and columns of the game's grid
-GAP = WIDTH // ROWS # width of each sqaure
+WIDTH = 450  # height and width of window
+ROWS = 9  # rows and columns of the game's grid
+GAP = WIDTH // ROWS  # width of each sqaure
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("LINE 98")
 
@@ -18,92 +21,134 @@ YELLOW = (255, 255, 0)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 PURPLE = (128, 0, 128)
-ORANGE = (255, 165 ,0)
+ORANGE = (255, 165, 0)
 GREY = (128, 128, 128)
 TURQUOISE = (64, 224, 208)
 
 # List contains colors for alive square
-SQUARE_COLORS = [ORANGE, BLUE, GREEN]
+SQUARE_COLORS = [ORANGE, BLUE, RED]
 
 # Represent each square in the game's grid
+
+
 class Square:
     def __init__(self, row, column):
-        self.row                = row
-        self.col                = column
-        self.x                  = row * GAP
-        self.y                  = column * GAP
-        self.width              = GAP
-        self.color              = WHITE
-        self.movableRoutes         = []
+        self.row = row
+        self.col = column
+        self.x = row * GAP
+        self.y = column * GAP
+        self.width = GAP
+        self.color = WHITE
+        self.movableRoutes = []
+        self.originalColor = random.choice(SQUARE_COLORS)
 
-        self.originalColor      = random.choice(SQUARE_COLORS)
-    
+        # Node Neighbours
+        self.hNeigh = [self]
+        self.vNeighs = [self]
+        self.leftDNeighs = [self]
+        self.rightDNeighs = [self]
+
     # Get position of a square
     def getPosition(self):
         return self.row, self.col
-    
+
     # Draw a square
     def draw(self, win):
         pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.width))
-    
-    # Get the neighbour squares all round this square
+
+    # Get the movable squares all round this square
     def getMovableSquare(self, grid):
         self.movableRoutes = []
 
         # Below square
         if self.row < ROWS - 1 and grid[self.row + 1][self.col].isIdle():
             self.movableRoutes.append(grid[self.row + 1][self.col])
-        
+
         # Upper square
         if self.row > 0 and grid[self.row - 1][self.col].isIdle():
             self.movableRoutes.append(grid[self.row - 1][self.col])
-        
+
         # Right square
         if self.col < ROWS - 1 and grid[self.row][self.col + 1].isIdle():
             self.movableRoutes.append(grid[self.row][self.col + 1])
-        
+
         # Left square
         if self.col > 0 and grid[self.row][self.col - 1].isIdle():
             self.movableRoutes.append(grid[self.row][self.col - 1])
-        
+
         return self.movableRoutes
-        
+
+
     # %%%%%%%%%%%%% Check status of the square %%%%%%%%%%%%% #
+    def isSame(self, otherSquare):
+        if otherSquare.isIdle() or self.isIdle():
+            return False
+        return self.originalColor == otherSquare.originalColor
+
     def isIdle(self):
         return self.color == WHITE
-        
+
     def isPath(self):
         return self.color == GREEN
-    
+
     def isSelected(self):
         return self.color == TURQUOISE
-    
+
     # %%%%%%%%%%%%% Change the status of the square %%%%%%%%%%%%% #
     def makeIdle(self):
         self.color = WHITE
 
     def makePath(self):
         self.color = GREEN
-    
+
     def makeSelected(self):
         self.color = TURQUOISE
-    
+
     def makeAlive(self):
         self.color = self.originalColor
-
+    
+    def __str__(self):
+        return f'({self.row}, {self.col}, {self.originalColor})'
 
 
 # Make A grid To Contain All The Node
 def makeGrid():
-	grid = []
+    grid = []
 
-	for row in range(ROWS):
-		grid.append([])
-		for col in range(ROWS):
-			square = Square(row, col)
-			grid[row].append(square)
+    for row in range(ROWS):
+        grid.append([])
+        for col in range(ROWS):
+            square = Square(row, col)
+            grid[row].append(square)
 
-	return grid
+    return grid
+
+# Checking grid
+def checkingGrid(grid, drawFunction):
+    totalSquares = 0
+
+    # Check for 5 in a column
+    for row in range(ROWS):
+        tempVList = [grid[row][0], ]
+        continuity = 1
+        for col in range(ROWS - 1):
+            if grid[row][col].isSame(grid[row][col + 1]):
+                continuity += 1
+                tempVList.append(grid[row][col + 1])
+            
+            else:
+                continuity = 1
+                tempVList = [grid[row][col + 1], ]
+        
+            if len(tempVList) >= 5:
+                print('There are 5 in a rows')
+                for square in tempVList:
+                    square.makeIdle()
+                    print(square.col, square.row)
+                    time.sleep(0.1)
+                    drawFunction()
+    
+    
 
 
 # Generate a random Square
@@ -116,19 +161,19 @@ def randomSquare(grid):
         row = random.randint(0, 8)
         col = random.randint(0, 8)
         ranSquare = grid[row][col]
-    
+
     ranSquare.makeAlive()
     return ranSquare
 
 
-
 # Draw the grid
 def drawGrid(win, rows, width):
-	gap = width // rows
-	for row in range(rows):
-		pygame.draw.line(win, GREY, (0, row * gap), (width, row * gap))
-		for col in range(rows):
-			pygame.draw.line(win, GREY, (col * gap, 0), (col * gap, width))
+    gap = width // rows
+    for row in range(rows):
+        pygame.draw.line(win, GREY, (0, row * gap), (width, row * gap))
+        for col in range(rows):
+            pygame.draw.line(win, GREY, (col * gap, 0), (col * gap, width))
+
 
 # Draw the whole window
 def draw(win, rows, width, grid):
@@ -144,13 +189,12 @@ def draw(win, rows, width, grid):
 
 # Get the col and row of the cliked Spot
 def getClikedPos(pos):
-	y, x = pos
+    y, x = pos
 
-	row = y // GAP
-	col = x // GAP
+    row = y // GAP
+    col = x // GAP
 
-	return row, col
-
+    return row, col
 
 
 def reconstructPath(prev, grid, end, draw):
@@ -161,19 +205,18 @@ def reconstructPath(prev, grid, end, draw):
     while current is not None:
         path.append(grid[current[0]][current[1]])
         current = prev[current[0]][current[1]]
-        
-    return path
-    
 
+    return path
 
 
 # ========================== Breadth First Search Algorithm ========================== #
 def findTheShortestWay(draw, grid, start, end):
-    distance 		= [[-1 for spot in range(ROWS + 1)] for row in range(ROWS + 1)]
-    prev 			= [[None for spot in range(ROWS + 1)] for row in range(ROWS + 1)]
+    distance = [[-1 for spot in range(ROWS + 1)] for row in range(ROWS + 1)]
+    prev = [[None for spot in range(ROWS + 1)] for row in range(ROWS + 1)]
     path = []
 
     from collections import deque
+
     rowQueue = deque()
     colQueue = deque()
 
@@ -188,19 +231,17 @@ def findTheShortestWay(draw, grid, start, end):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-        
+
         row = rowQueue.popleft()
         col = colQueue.popleft()
         square = grid[row][col]
 
-
         if row == endRow and col == endCol:
             path = reconstructPath(prev, grid, end, draw)
             path.reverse()
-            print('Find the way!!!')
 
             originalColor = start.originalColor
-            
+
             step = 0
             while step < len(path):
                 movingSquare = path[step]
@@ -212,18 +253,18 @@ def findTheShortestWay(draw, grid, start, end):
                 draw()
 
                 time.sleep(0.07)
-                
+
                 if step != len(path) - 1:
                     path[step].makeIdle()
-                
+
                 step += 1
-            
+
             return True
 
         if row != endRow and col != endCol:
             # print('Looking through movableRoutes!!!')
             pass
-        
+
         for neighbour in square.getMovableSquare(grid):
             neighRow, neighCol = neighbour.getPosition()
 
@@ -233,15 +274,12 @@ def findTheShortestWay(draw, grid, start, end):
                 colQueue.append(neighCol)
 
                 prev[neighRow][neighCol] = (row, col)
-        
+
         draw()
-    
+
     return False
 
-        
 
-
-    
 def main():
     grid = makeGrid()
 
@@ -256,12 +294,13 @@ def main():
     while run:
         clock.tick(60)
         draw(WIN, ROWS, WIDTH, grid)
+        checkingGrid(grid, lambda: draw(WIN, ROWS, WIDTH, grid))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
                 break
-            
+
             if pygame.mouse.get_pressed()[0]:
                 pos = pygame.mouse.get_pos()
                 row, col = getClikedPos(pos)
@@ -270,25 +309,26 @@ def main():
                 if not selectedSquare and not square.isIdle():
                     square.makeSelected()
                     selectedSquare = square
-                
+
                 elif square.isSelected():
                     square.makeAlive()
                     selectedSquare = None
-                
+
                 elif selectedSquare and selectedSquare != square and square.isIdle():
                     end = square
                     for row in grid:
                         for square in row:
                             square.getMovableSquare(grid)
-                        
-                    move = findTheShortestWay(lambda: draw(WIN, ROWS, WIDTH, grid), grid, selectedSquare, end)
+
+                    move = findTheShortestWay(
+                        lambda: draw(WIN, ROWS, WIDTH, grid), grid, selectedSquare, end
+                    )
 
                     if move:
                         selectedSquare = None
                         end = None
-                        randomSquare(grid)           
+                        randomSquare(grid)
 
-                
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_c:
                     selectedSquare = None

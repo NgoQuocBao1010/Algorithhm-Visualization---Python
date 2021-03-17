@@ -1,10 +1,5 @@
-from collections import deque
+a = [1, 2]
+b = [3, 4]
 
-a = deque()
-
-for i in range(10):
-    a.append(i)
-
-a.popleft()
-for e in a:
-    print(e)
+a += b
+print(a)
