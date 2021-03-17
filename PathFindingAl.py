@@ -157,6 +157,7 @@ def reconstructPath(prev, grid, end, draw):
 # ========================== Breadth First Search Algorithm ========================== #
 def algorithm(draw, grid, start, end):
 	rows = len(grid)
+	print(rows)
 	distance 		= [[-1 for spot in range(rows + 1)] for row in range(rows + 1)]
 	prev 			= [[None for spot in range(rows + 1)] for row in range(rows + 1)]
 
