@@ -23,7 +23,7 @@ GREY = (128, 128, 128)
 TURQUOISE = (64, 224, 208)
 
 # List contains colors for alive square
-SQUARE_COLORS = [ORANGE, BLUE, RED, PURPLE, BLACK]
+SQUARE_COLORS = [ORANGE, BLUE, GREEN]
 
 # Represent each square in the game's grid
 class Square:
@@ -34,7 +34,7 @@ class Square:
         self.y                  = column * GAP
         self.width              = GAP
         self.color              = WHITE
-        self.neighbours         = []
+        self.movableRoutes         = []
 
         self.originalColor      = random.choice(SQUARE_COLORS)
     
@@ -47,26 +47,26 @@ class Square:
         pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.width))
     
     # Get the neighbour squares all round this square
-    def getNeighbours(self, grid):
-        self.neighbours = []
+    def getMovableSquare(self, grid):
+        self.movableRoutes = []
 
         # Below square
         if self.row < ROWS - 1 and grid[self.row + 1][self.col].isIdle():
-            self.neighbours.append(grid[self.row + 1][self.col])
+            self.movableRoutes.append(grid[self.row + 1][self.col])
         
         # Upper square
         if self.row > 0 and grid[self.row - 1][self.col].isIdle():
-            self.neighbours.append(grid[self.row - 1][self.col])
+            self.movableRoutes.append(grid[self.row - 1][self.col])
         
         # Right square
         if self.col < ROWS - 1 and grid[self.row][self.col + 1].isIdle():
-            self.neighbours.append(grid[self.row][self.col + 1])
+            self.movableRoutes.append(grid[self.row][self.col + 1])
         
         # Left square
         if self.col > 0 and grid[self.row][self.col - 1].isIdle():
-            self.neighbours.append(grid[self.row][self.col - 1])
+            self.movableRoutes.append(grid[self.row][self.col - 1])
         
-        return self.neighbours
+        return self.movableRoutes
         
     # %%%%%%%%%%%%% Check status of the square %%%%%%%%%%%%% #
     def isIdle(self):
@@ -221,10 +221,10 @@ def findTheShortestWay(draw, grid, start, end):
             return True
 
         if row != endRow and col != endCol:
-            # print('Looking through neighbours!!!')
+            # print('Looking through movableRoutes!!!')
             pass
         
-        for neighbour in square.getNeighbours(grid):
+        for neighbour in square.getMovableSquare(grid):
             neighRow, neighCol = neighbour.getPosition()
 
             if distance[neighRow][neighCol] == -1:
@@ -279,7 +279,7 @@ def main():
                     end = square
                     for row in grid:
                         for square in row:
-                            square.getNeighbours(grid)
+                            square.getMovableSquare(grid)
                         
                     move = findTheShortestWay(lambda: draw(WIN, ROWS, WIDTH, grid), grid, selectedSquare, end)
 
@@ -294,6 +294,7 @@ def main():
                     selectedSquare = None
                     end = None
                     grid = makeGrid()
+                    randomSquare(grid)
 
     pygame.quit()
 
