@@ -40,6 +40,7 @@ class Square:
         self.width = GAP
         self.color = WHITE
         self.movableRoutes = []
+        self.isAlive = False
         self.originalColor = random.choice(SQUARE_COLORS)
 
         # Node Neighbours
@@ -54,7 +55,8 @@ class Square:
 
     # Draw a square
     def draw(self, win):
-        pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.width))
+        reducedSize = 0 if not self.isAlive else 10
+        pygame.draw.rect(win, self.color, (self.x, self.y, self.width - reducedSize, self.width -reducedSize))
 
     # Get the movable squares all round this square
     def getMovableSquare(self, grid):
@@ -81,7 +83,7 @@ class Square:
 
     # %%%%%%%%%%%%% Check status of the square %%%%%%%%%%%%% #
     def isSame(self, otherSquare):
-        if otherSquare.isIdle() or self.isIdle():
+        if not otherSquare.isAlive or not self.isAlive:
             return False
         return self.originalColor == otherSquare.originalColor
 
@@ -105,6 +107,7 @@ class Square:
         self.color = TURQUOISE
 
     def makeAlive(self):
+        self.isAlive = True
         self.color = self.originalColor
     
     def __str__(self):
@@ -130,23 +133,42 @@ def checkingGrid(grid, drawFunction):
     # Check for 5 in a column
     for row in range(ROWS):
         tempVList = [grid[row][0], ]
-        continuity = 1
         for col in range(ROWS - 1):
             if grid[row][col].isSame(grid[row][col + 1]):
-                continuity += 1
                 tempVList.append(grid[row][col + 1])
             
             else:
-                continuity = 1
+    
                 tempVList = [grid[row][col + 1], ]
         
             if len(tempVList) >= 5:
-                print('There are 5 in a rows')
+                print('There are 5 in a column')
                 for square in tempVList:
                     square.makeIdle()
                     print(square.col, square.row)
                     time.sleep(0.1)
                     drawFunction()
+        
+    # Check for 5 in a column
+    for col in range(ROWS):
+        tempHList = [grid[0][col], ]
+        for row in range(ROWS - 1):
+            if grid[row][col].isSame(grid[row + 1][col]):
+                tempHList.append(grid[row + 1][col])
+            
+            else:
+    
+                tempHList = [grid[row + 1][col], ]
+        
+            if len(tempHList) >= 5:
+                print('There are 5 in a row')
+                for square in tempHList:
+                    square.makeIdle()
+                    print(square.col, square.row)
+                    time.sleep(0.1)
+                    drawFunction()
+    
+    
     
     
 
@@ -162,8 +184,17 @@ def randomSquare(grid):
         col = random.randint(0, 8)
         ranSquare = grid[row][col]
 
-    ranSquare.makeAlive()
     return ranSquare
+
+
+def threeRandomSquare(grid):
+    squares = []
+    while len(squares) < 0:
+        randomSquare = randomSquare(grid)
+        squares.append(randomSquare)
+
+    return squares
+
 
 
 # Draw the grid
@@ -327,13 +358,18 @@ def main():
                     if move:
                         selectedSquare = None
                         end = None
-                        randomSquare(grid)
+                        
+                        i = 0
+                        while i < 3:
+                            randomSquare(grid)
+                            i += 1
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_c:
                     selectedSquare = None
                     end = None
                     grid = makeGrid()
+                    
                     randomSquare(grid)
 
     pygame.quit()
