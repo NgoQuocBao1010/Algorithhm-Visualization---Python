@@ -6,6 +6,7 @@ import random
 
 
 pygame.init()
+pygame.font.init()
 # Window's Configuration
 WIDTH = 450  # height and width of window
 ROWS = 9  # rows and columns of the game's grid
@@ -27,6 +28,7 @@ TURQUOISE = (64, 224, 208)
 
 # List contains colors for alive square
 SQUARE_COLORS = [ORANGE, BLUE, RED]
+# SQUARE_COLORS = [ORANGE, BLUE, RED, PURPLE, GREEN]
 
 # Represent each square in the game's grid
 
@@ -41,6 +43,7 @@ class Square:
         self.color = WHITE
         self.movableRoutes = []
         self.isAlive = False
+        self.isReady = False
         self.originalColor = random.choice(SQUARE_COLORS)
 
         # Node Neighbours
@@ -55,7 +58,7 @@ class Square:
 
     # Draw a square
     def draw(self, win):
-        reducedSize = 0 if not self.isAlive else 10
+        reducedSize = 0 if self.isAlive else 30
         pygame.draw.rect(win, self.color, (self.x, self.y, self.width - reducedSize, self.width -reducedSize))
 
     # Get the movable squares all round this square
@@ -88,7 +91,7 @@ class Square:
         return self.originalColor == otherSquare.originalColor
 
     def isIdle(self):
-        return self.color == WHITE
+        return not self.isAlive
 
     def isPath(self):
         return self.color == GREEN
@@ -98,6 +101,7 @@ class Square:
 
     # %%%%%%%%%%%%% Change the status of the square %%%%%%%%%%%%% #
     def makeIdle(self):
+        self.isAlive = False
         self.color = WHITE
 
     def makePath(self):
@@ -105,10 +109,13 @@ class Square:
 
     def makeSelected(self):
         self.color = TURQUOISE
+    
+    def makeReady(self):
+        self.color = self.originalColor
 
     def makeAlive(self):
         self.isAlive = True
-        self.color = self.originalColor
+        self.makeReady()
     
     def __str__(self):
         return f'({self.row}, {self.col}, {self.originalColor})'
@@ -126,6 +133,7 @@ def makeGrid():
 
     return grid
 
+
 # Checking grid
 def checkingGrid(grid, drawFunction):
     totalSquares = 0
@@ -134,6 +142,7 @@ def checkingGrid(grid, drawFunction):
     for row in range(ROWS):
         tempVList = [grid[row][0], ]
         for col in range(ROWS - 1):
+            
             if grid[row][col].isSame(grid[row][col + 1]):
                 tempVList.append(grid[row][col + 1])
             
@@ -145,7 +154,6 @@ def checkingGrid(grid, drawFunction):
                 print('There are 5 in a column')
                 for square in tempVList:
                     square.makeIdle()
-                    print(square.col, square.row)
                     time.sleep(0.1)
                     drawFunction()
         
@@ -164,12 +172,71 @@ def checkingGrid(grid, drawFunction):
                 print('There are 5 in a row')
                 for square in tempHList:
                     square.makeIdle()
-                    print(square.col, square.row)
                     time.sleep(0.1)
                     drawFunction()
     
+    # Check for right diaognal
+    for col in range(4, ROWS):
+        for row in range(5):
+            if (
+                grid[row][col].isSame(grid[row + 1][col - 1]) and 
+                grid[row + 1][col - 1].isSame(grid[row + 2][col - 2]) and 
+                grid[row + 2][col - 2].isSame(grid[row + 3][col - 3]) and 
+                grid[row + 3][col - 3].isSame(grid[row + 4][col - 4])
+            ):
+                print('There a 5 in a diagonal')
+                grid[row][col].makeIdle()
+                time.sleep(0.1)
+                drawFunction()
+                grid[row + 1][col - 1].makeIdle()
+                time.sleep(0.1)
+                drawFunction()
+                grid[row + 2][col - 2].makeIdle()
+                time.sleep(0.1)
+                drawFunction()
+                grid[row + 3][col - 3].makeIdle()
+                time.sleep(0.1)
+                drawFunction()
+                grid[row + 4][col - 4].makeIdle()
+                time.sleep(0.1)
+                drawFunction()
+
     
+    # Check for left diaognal
+    for col in range(5):
+        for row in range(5):
+            if (
+                grid[row][col].isSame(grid[row + 1][col + 1]) and 
+                grid[row + 1][col + 1].isSame(grid[row + 2][col + 2]) and 
+                grid[row + 2][col + 2].isSame(grid[row + 3][col + 3]) and 
+                grid[row + 3][col + 3].isSame(grid[row + 4][col + 4])
+            ):
+                print('There a 5 in a diagonal')
+                grid[row][col].makeIdle()
+                time.sleep(0.1)
+                drawFunction()
+                grid[row + 1][col + 1].makeIdle()
+                time.sleep(0.1)
+                drawFunction()
+                grid[row + 2][col + 2].makeIdle()
+                time.sleep(0.1)
+                drawFunction()
+                grid[row + 3][col + 3].makeIdle()
+                time.sleep(0.1)
+                drawFunction()
+                grid[row + 4][col + 4].makeIdle()
+                time.sleep(0.1)
+                drawFunction()
     
+
+    # Check how many squares in grid already been occupied
+    for row in range(ROWS):
+        for col in range(ROWS):
+            if grid[row][col].isAlive:
+                totalSquares += 1
+
+    return totalSquares >= 78
+        
     
 
 
@@ -184,14 +251,23 @@ def randomSquare(grid):
         col = random.randint(0, 8)
         ranSquare = grid[row][col]
 
+    ranSquare.makeAlive()
     return ranSquare
 
 
+# Generate 3 new square
 def threeRandomSquare(grid):
     squares = []
-    while len(squares) < 0:
-        randomSquare = randomSquare(grid)
-        squares.append(randomSquare)
+    while len(squares) < 3:
+        row = random.randint(0, 8)
+        col = random.randint(0, 8)
+
+        while not grid[row][col].isIdle():
+            row = random.randint(0, 8)
+            col = random.randint(0, 8)
+            
+        grid[row][col].makeReady()
+        squares.append(grid[row][col])
 
     return squares
 
@@ -207,7 +283,7 @@ def drawGrid(win, rows, width):
 
 
 # Draw the whole window
-def draw(win, rows, width, grid):
+def draw(win, rows, width, grid, gameOver=False):
     win.fill(WHITE)
 
     for row in grid:
@@ -215,6 +291,13 @@ def draw(win, rows, width, grid):
             square.draw(win)
 
     drawGrid(win, rows, width)
+
+    if gameOver:
+        myfont = pygame.font.SysFont('Comic Sans MS', 40)
+        textsurface = myfont.render('Game Over', True, (0, 0, 0))
+        textsurface2 = myfont.render('Press C to restart', True, (0, 0, 0))
+        win.blit(textsurface,(30,30))
+        win.blit(textsurface2,(30,70))
     pygame.display.update()
 
 
@@ -276,9 +359,11 @@ def findTheShortestWay(draw, grid, start, end):
             step = 0
             while step < len(path):
                 movingSquare = path[step]
+                movingSquare.isAlive = True
                 movingSquare.color = originalColor
 
                 if step == len(path) - 1:
+                    movingSquare.isAlive = True
                     movingSquare.originalColor = originalColor
 
                 draw()
@@ -318,51 +403,54 @@ def main():
     end = None
 
     firstSquare = randomSquare(grid)
+    firstSquare.makeAlive()
+
+    readySquares = []
+    gameOver = False
 
     clock = pygame.time.Clock()
-
     run = True
     while run:
-        clock.tick(60)
-        draw(WIN, ROWS, WIDTH, grid)
-        checkingGrid(grid, lambda: draw(WIN, ROWS, WIDTH, grid))
+        clock.tick(30)
+        draw(WIN, ROWS, WIDTH, grid, gameOver)
+        gameOver = checkingGrid(grid, lambda: draw(WIN, ROWS, WIDTH, grid))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
                 break
+            
+            if not gameOver:
+                if pygame.mouse.get_pressed()[0]:
+                    pos = pygame.mouse.get_pos()
+                    row, col = getClikedPos(pos)
+                    square = grid[row][col]
 
-            if pygame.mouse.get_pressed()[0]:
-                pos = pygame.mouse.get_pos()
-                row, col = getClikedPos(pos)
-                square = grid[row][col]
+                    if not selectedSquare and not square.isIdle():
+                        square.makeSelected()
+                        selectedSquare = square
 
-                if not selectedSquare and not square.isIdle():
-                    square.makeSelected()
-                    selectedSquare = square
-
-                elif square.isSelected():
-                    square.makeAlive()
-                    selectedSquare = None
-
-                elif selectedSquare and selectedSquare != square and square.isIdle():
-                    end = square
-                    for row in grid:
-                        for square in row:
-                            square.getMovableSquare(grid)
-
-                    move = findTheShortestWay(
-                        lambda: draw(WIN, ROWS, WIDTH, grid), grid, selectedSquare, end
-                    )
-
-                    if move:
+                    elif square.isSelected():
+                        square.makeAlive()
                         selectedSquare = None
-                        end = None
-                        
-                        i = 0
-                        while i < 3:
-                            randomSquare(grid)
-                            i += 1
+
+                    elif selectedSquare and selectedSquare != square and square.isIdle():
+                        end = square
+                        for row in grid:
+                            for square in row:
+                                square.getMovableSquare(grid)
+
+                        move = findTheShortestWay(
+                            lambda: draw(WIN, ROWS, WIDTH, grid), grid, selectedSquare, end
+                        )
+                        if move:
+                            selectedSquare = None
+                            end = None
+
+                            for square in readySquares:
+                                square.makeAlive()
+                            
+                            readySquares = threeRandomSquare(grid)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_c:
