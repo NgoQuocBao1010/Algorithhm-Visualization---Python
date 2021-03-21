@@ -3,7 +3,7 @@ import math
 from queue import PriorityQueue
 
 # Window's Configuration
-WIDTH = 900
+WIDTH = 450
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("Path finding Algorithm")
 
