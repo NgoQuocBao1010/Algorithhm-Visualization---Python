@@ -64,7 +64,6 @@ class Spot():
             
             newY = self.y - self.offsetY
             win.blit(img, (self.x, newY))
-            # img.render(win, (self.x, self.y))
         else:
             pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.width))
 
