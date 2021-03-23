@@ -60,7 +60,10 @@ class Spot():
 
         # Spot status
         self.bgColor = WHITE
-        self.color = 'green'
+        self.color = random.choice(list(IMAGES.keys()))
+        self.bigImgFile = IMAGES[self.color].get('big')
+        self.smallImg = IMAGES[self.color].get('small')
+        self.mainImg = None
 
         # animation
         self.selected = False
@@ -68,6 +71,7 @@ class Spot():
         self.offsetY = 0
 
         # Status
+        self.baby = False
         self.alive = False
 
     
@@ -100,6 +104,21 @@ class Spot():
 
         return self.movableRoutes
     
+    # check if square is in the same rol (1: if to the right)
+    def movingSquare(self, otherSpot):
+        offX = 0
+        offY = 0
+
+        print(self.row, self.col, otherSpot.row, otherSpot.col)
+        if self.row == otherSpot.row:
+            offX = 1 if self.col < otherSpot.col else -1
+        
+        if self.col == otherSpot.col:
+            offY = 1 if self.row < otherSpot.row else -1
+        
+        return offX, offY
+
+    
     # Draw a square
     def draw(self, win):
         pygame.draw.rect(win, self.bgColor, (self.x, self.y, self.width, self.width))
@@ -124,7 +143,7 @@ class Spot():
                 self.offsetY = 0
             
             newY = self.y - self.offsetY
-            win.blit(IMAGES[self.color].get('big'), (self.x, newY))
+            self.mainImg = win.blit(self.bigImgFile, (self.x, newY))
 
 
 
@@ -191,7 +210,6 @@ class Grid():
 
         self.rectangle = pygame.draw.rect(win, BLACK, (self.x, self.y, self.width, self.width), 2)
 
-
     # generate a random square in grid
     def randomSquare(self):
         row = random.randint(0, 8)
@@ -204,7 +222,6 @@ class Grid():
             ranSquare = self.grid[row][col]
 
         self.grid[row][col].alive = True
-
 
     # ****************** BFS Algorithm ****************** #
     def findShortestPath(self, start, end, drawFunc):
@@ -238,26 +255,42 @@ class Grid():
                 path.reverse()
 
                 # originalColor = start.originalColor
+                # while step < len(path):
+                #     movingSquare = path[step]
+                #     movingSquare.alive = True
+                #     # movingSquare.color = originalColor
 
-                step = 0
-                while step < len(path):
-                    movingSquare = path[step]
-                    movingSquare.alive = True
-                    # movingSquare.color = originalColor
+                #     if step == len(path) - 1:
+                #         movingSquare.alive = True
+                #         # movingSquare.originalColor = originalColor
 
-                    if step == len(path) - 1:
-                        movingSquare.alive = True
-                        # movingSquare.originalColor = originalColor
+                #     drawFunc()
 
-                    drawFunc()
+                #     time.sleep(0.1)
 
-                    time.sleep(0.1)
+                #     if step != len(path) - 1:
+                #         path[step].alive = False
 
-                    if step != len(path) - 1:
-                        path[step].alive = False
+                #     step += 1
 
-                    step += 1
-
+                current = start
+                img = start.bigImgFile
+                for spot in path:
+                    offX, offY = current.movingSquare(spot)
+                    while current.x != spot.x or current.y != spot.y:
+                        current.x += offX * 10
+                        current.y += offY * 10
+                        print(current.x, current.y, spot.x, spot.y, offX, offY)
+                        WIN.blit(img, (current.x, current.y))
+                        pygame.display.update()
+                        time.sleep(0.1)
+                    current = spot
+                    if spot == path[-1]:
+                        spot.alive = True
+                        spot.color = start.color
+                
+                current = start
+                start.alive = False
                 return True
 
             if row != endRow and col != endCol:
@@ -336,6 +369,7 @@ def main():
                         selectedSquare = None
                     
                     elif selectedSquare and spot != selectedSquare and not spot.alive:
+                        selectedSquare.selected = False
                         gotoSquare = spot
 
                         for row in grid.grid:
