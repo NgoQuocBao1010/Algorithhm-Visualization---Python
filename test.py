@@ -1,5 +1,5 @@
 import pygame
-import random
+import random, time
 
 # Pygame initilize
 pygame.init()
@@ -69,16 +69,43 @@ class Spot():
 
         # Status
         self.alive = False
+
+    
+    def __str__(self):
+        return f'Spot at {self.row}, {self.col}'
     
     # Get position of a square
     def getPosition(self):
         return self.row, self.col
+    
+    # Get the movable squares all round this square
+    def getMovableSquare(self, grid):
+        self.movableRoutes = []
+
+        # Below square
+        if self.row < ROWS - 1 and not grid[self.row + 1][self.col].alive:
+            self.movableRoutes.append(grid[self.row + 1][self.col])
+
+        # Upper square
+        if self.row > 0 and not grid[self.row - 1][self.col].alive:
+            self.movableRoutes.append(grid[self.row - 1][self.col])
+
+        # Right square
+        if self.col < COLS - 1 and not grid[self.row][self.col + 1].alive:
+            self.movableRoutes.append(grid[self.row][self.col + 1])
+
+        # Left square
+        if self.col > 0 and not grid[self.row][self.col - 1].alive:
+            self.movableRoutes.append(grid[self.row][self.col - 1])
+
+        return self.movableRoutes
     
     # Draw a square
     def draw(self, win):
         pygame.draw.rect(win, self.bgColor, (self.x, self.y, self.width, self.width))
 
         if self.alive:
+            # bouncing animation
             if self.selected:
                 if not self.up:
                     self.offsetY += 1
@@ -100,7 +127,8 @@ class Spot():
             win.blit(IMAGES[self.color].get('big'), (self.x, newY))
 
 
-# Grid contains all the ball
+
+# $$$$$$$$$$$$********* Grid contains all the ball $$$$$$$$$$$$********* #
 class Grid():
     def __init__(self):
         # Grid coordinate's config
@@ -178,6 +206,88 @@ class Grid():
         self.grid[row][col].alive = True
 
 
+    # ****************** BFS Algorithm ****************** #
+    def findShortestPath(self, start, end, drawFunc):
+        distance = [[-1 for spot in range(self.rows + 1)] for row in range(self.rows + 1)]
+        prev = [[None for spot in range(self.rows + 1)] for row in range(self.rows + 1)]
+        path = []
+
+        from collections import deque
+
+        rowQueue = deque()
+        colQueue = deque()
+
+        startRow, startCol = start.getPosition()
+        endRow, endCol = end.getPosition()
+
+        rowQueue.append(startRow)
+        colQueue.append(startCol)
+        distance[startRow][startCol] = 0
+
+        while len(rowQueue) > 0:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+
+            row = rowQueue.popleft()
+            col = colQueue.popleft()
+            square = self.grid[row][col]
+
+            if row == endRow and col == endCol:
+                path = self.reconstructPath(prev, end)
+                path.reverse()
+
+                # originalColor = start.originalColor
+
+                step = 0
+                while step < len(path):
+                    movingSquare = path[step]
+                    movingSquare.alive = True
+                    # movingSquare.color = originalColor
+
+                    if step == len(path) - 1:
+                        movingSquare.alive = True
+                        # movingSquare.originalColor = originalColor
+
+                    drawFunc()
+
+                    time.sleep(0.1)
+
+                    if step != len(path) - 1:
+                        path[step].alive = False
+
+                    step += 1
+
+                return True
+
+            if row != endRow and col != endCol:
+                # print('Looking through movableRoutes!!!')
+                pass
+
+            for neighbour in square.movableRoutes:
+                neighRow, neighCol = neighbour.getPosition()
+
+                if distance[neighRow][neighCol] == -1:
+                    distance[neighRow][neighCol] = distance[row][col] + 1
+                    rowQueue.append(neighRow)
+                    colQueue.append(neighCol)
+
+                    prev[neighRow][neighCol] = (row, col)
+
+            drawFunc()
+        return False
+
+    # Reconstruct the path found by algorithm
+    def reconstructPath(self, prev, end):
+        path = []
+        endRow, endCol = end.getPosition()
+        current = (endRow, endCol)
+
+        while current is not None:
+            path.append(self.grid[current[0]][current[1]])
+            current = prev[current[0]][current[1]]
+
+        return path
 
 
 def draw(win, grid):
@@ -198,6 +308,7 @@ def main():
     grid.randomSquare()
 
     selectedSquare = None
+    gotoSquare = None
 
     clock = pygame.time.Clock()
     run = True
@@ -221,9 +332,25 @@ def main():
                         selectedSquare = spot
                     
                     elif selectedSquare == spot:
-                        print('Yes')
                         spot.selected = False
                         selectedSquare = None
+                    
+                    elif selectedSquare and spot != selectedSquare and not spot.alive:
+                        gotoSquare = spot
+
+                        for row in grid.grid:
+                            for square in row:
+                                square.getMovableSquare(grid.grid)
+                        
+                        move = grid.findShortestPath(
+                            selectedSquare, gotoSquare, lambda: draw(WIN, grid)
+                        )
+
+                        print(move)
+
+                        if move:
+                            selectedSquare = None
+                            end = None
 
 
 main()
