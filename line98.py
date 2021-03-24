@@ -9,7 +9,8 @@ pygame.font.init()
 WIN_WIDTH = WIN_HEIGHT = 600                                # height and width of window
 WIN = pygame.display.set_mode((WIN_WIDTH, WIN_WIDTH))       # initilize win form
 pygame.display.set_caption("LINE 98")                       # win caption
-
+SCORE_TEXT_FONT = pygame.font.SysFont('Courier', 30, bold=True)
+SCORE_FONT = pygame.font.SysFont('Courier', 40)
 
 # Grid Configuration
 WIDTH = HEIGHT = 450                                        # width and height of the grid
@@ -23,6 +24,11 @@ BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+TURQUOISE = (64, 224, 208)
+
+
+ICON_IMAGES = pygame.image.load('./images/line98.png')
+SCORE_DISPLAY = pygame.image.load('./images/scoreDisplay.png')
 
 # Ball's Images
 IMAGES = {
@@ -49,7 +55,7 @@ IMAGES = {
 }
 
 
-# Each square in the grid
+# $$$$$$$$$$$$********* Square contains 1 ball $$$$$$$$$$$$********* #
 class Spot():
     def __init__(self, row, column):
         self.row = row
@@ -113,9 +119,6 @@ class Spot():
     # Update new color
     def update(self, otherSpot):
         self.color = otherSpot.color
-        self.bigImgFile = IMAGES[self.color].get('big')
-        self.smallImg = IMAGES[self.color].get('small')
-        # self.mainImg = WIN.blit(self.bigImgFile, (self.x, self.y))
 
     # Make spot became bigger
     def makeAlive(self):
@@ -124,6 +127,7 @@ class Spot():
     
     # Make spot became dead
     def makeDead(self):
+        self.color = random.choice(list(IMAGES.keys()))
         self.alive = False
         self.baby = False
     
@@ -151,16 +155,16 @@ class Spot():
                 self.offsetY = 0
             
             newY = self.y - self.offsetY
-            self.mainImg = win.blit(self.bigImgFile, (self.x, newY))
+            self.mainImg = win.blit(IMAGES[self.color].get('big'), (self.x, newY))
     
         elif self.baby:
             newX = self.x + 15
             newY = self.y + 15
-            self.mainImg = win.blit(self.smallImgFile, (newX, newY))
+            self.mainImg = win.blit(IMAGES[self.color].get('small'), (newX, newY))
 
 
 
-# $$$$$$$$$$$$********* Grid contains all the ball $$$$$$$$$$$$********* #
+# $$$$$$$$$$$$********* Grid contains all the balls $$$$$$$$$$$$********* #
 class Grid():
     def __init__(self):
         # Grid coordinate's config
@@ -171,6 +175,7 @@ class Grid():
         self.y = WIN_HEIGHT - self.height -  self.marginBottom
         
         # ...
+        self.freeSpots = []
         self.babies = []
         self.createNewGrid()
     
@@ -201,6 +206,7 @@ class Grid():
     # Initialize a empty grid
     def createNewGrid(self):
         self.grid = []
+        self.freeSpots = []
 
         for row in range(ROWS):
             self.grid.append([])
@@ -208,6 +214,7 @@ class Grid():
             for col in range(COLS):
                 spot = Spot(row, col)
                 self.grid[row].append(spot)
+                self.freeSpots.append((row, col))
     
     # draw the lines
     def drawLine(self, win):
@@ -229,21 +236,14 @@ class Grid():
         
     # return a col and col of a random idle sqot
     def randomSquare(self):
-        row = random.randint(0, 8)
-        col = random.randint(0, 8)
-        ranSquare = self.grid[row][col]
-
-        while ranSquare.alive:
-            row = random.randint(0, 8)
-            col = random.randint(0, 8)
-            ranSquare = self.grid[row][col]
+        row, col = random.choice(self.freeSpots)
 
         return row, col
 
     # make 3 random babies
     def makeBabies(self):
         self.babies = []
-        while len(self.babies) < 10:
+        while len(self.babies) < 3:
             newRol, newCol = self.randomSquare()
             self.grid[newRol][newCol].baby = True
             self.babies.append(self.grid[newRol][newCol])
@@ -255,7 +255,7 @@ class Grid():
 
         while len(newSquares) < 3:
             newRol, newCol = self.randomSquare()
-            self.grid[newRol][newCol].alive = True
+            self.grid[newRol][newCol].makeAlive()
             newSquares.append(self.grid[newRol][newCol])
         
         self.makeBabies()
@@ -270,7 +270,7 @@ class Grid():
     
     # checking grid conditions
     def checking(self, drawFunc):
-        changed = False
+        point = 0
         deleteSpots = []
 
         # Check for 5 same spot in a row
@@ -285,7 +285,6 @@ class Grid():
             
                 if len(tempVList) >= 5:
                     print('There are 5 in a row')
-                    changed = True
                     for spot in tempVList:
                         if spot not in deleteSpots:
                             deleteSpots.append(spot)
@@ -301,7 +300,6 @@ class Grid():
             
                 if len(tempHList) >= 5:
                     print('There are 5 in a column')
-                    changed = True
                     for spot in tempHList:
                         if spot not in deleteSpots:
                             deleteSpots.append(spot)
@@ -321,7 +319,6 @@ class Grid():
                     deleteSpots.append(self.grid[row + 3][col + 3]);
                     deleteSpots.append(self.grid[row + 4][col + 4]);
         
-
         # Left to Right diaognal
         for col in range(4, self.cols):
             for row in range(5):
@@ -337,12 +334,25 @@ class Grid():
                     deleteSpots.append(self.grid[row + 3][col - 3]);
                     deleteSpots.append(self.grid[row + 4][col - 4]);
 
+
+        # Delete spots
         for spot in deleteSpots:
             spot.makeDead()
             time.sleep(0.08)
+            point += 1
             drawFunc()
         
-        return changed
+
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if self.grid[row][col].alive and (row, col) in self.freeSpots:
+                    self.freeSpots.remove((row, col))
+                
+                if not self.grid[row][col].alive and (row, col) not in self.freeSpots:
+                    self.freeSpots.append((row, col))
+        
+        # print(len(self.freeSpots))
+        return point
 
     # ****************** BFS Algorithm ****************** #
     def findShortestPath(self, start, end, drawFunc):
@@ -375,13 +385,16 @@ class Grid():
                 path = self.reconstructPath(prev, end)
                 path.reverse()
 
-                img = start.bigImgFile
+
                 orginalColor = start.color
+                img = IMAGES[start.color].get('big')
 
                 c_x, c_y = start.x, start.y
                 start.makeDead()
 
+                prevPath = []
                 for spot in path:
+                    prevPath.append(spot)
                     newX, newY = spot.x, spot.y
                     while c_x != newX or c_y != newY:
                         if newX > c_x:
@@ -393,16 +406,21 @@ class Grid():
                             c_y += 1
                         elif newY < c_y:
                             c_y -= 1
-                        
-                        WIN.fill(WHITE)
-                        self.draw(WIN)
+
+                        for spot in prevPath:
+                            spot.draw(WIN)
+                        self.drawLine(WIN)
                         WIN.blit(img, (c_x, c_y))
+
+                        pygame.time.delay(1)
                         pygame.display.update()
+
+                        current = spot
 
                     c_x, c_y = spot.x, spot.y
                     if spot == path[-1]:
                         path[-1].makeDead()
-                        path[-1].update(start)
+                        path[-1].color = orginalColor
                         path[-1].makeAlive()
 
                 return True
@@ -437,9 +455,21 @@ class Grid():
         return path
 
 
-def draw(win, grid):
-    win.fill(WHITE)
+
+# Update main win everey frame
+def draw(win, grid, score=0):
+    win.fill(TURQUOISE)
     grid.draw(win)
+    
+    win.blit(ICON_IMAGES, (75, 10))
+
+    # score text
+    text = SCORE_TEXT_FONT.render("Score", True, (255, 0, 0))
+    win.blit(text, (225, 40))
+
+    scoreText = SCORE_FONT.render(f"{score}", True, WHITE)
+    win.blit(SCORE_DISPLAY, (225, 70))
+    win.blit(scoreText, (240, 75))
     pygame.display.update()
 
 
@@ -457,24 +487,26 @@ def main():
     selectedSquare = None
     gotoSquare = None
 
+    score = 0
+
     clock = pygame.time.Clock()
     run = True
     while run:
-        clock.tick(90)
-        grid.checking(lambda: draw(WIN, grid))
-        draw(WIN, grid)
+        clock.tick(60)
+        grid.checking(lambda: draw(WIN, grid, score))
+        draw(WIN, grid, score)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
                 break
+            
             if pygame.mouse.get_pressed()[0]:
                 pos = pygame.mouse.get_pos()
                 
                 if grid.isCliked(pos):
                     row, col = grid.getPosition(pos)
-
                     spot = grid.grid[row][col]
-                    print(spot.color)
+
                     if not selectedSquare:
                         if spot.alive:
                             if not spot.selected:
@@ -485,34 +517,49 @@ def main():
                         spot.selected = False
                         selectedSquare = None
 
-                    elif selectedSquare and spot != selectedSquare and not spot.alive:
-                        selectedSquare.selected = False
-                        gotoSquare = spot
+                    elif selectedSquare and spot != selectedSquare:
+                        if not spot.alive:
+                            selectedSquare.selected = False
+                            gotoSquare = spot
 
-                        for row in grid.grid:
-                            for square in row:
-                                square.getMovableSquare(grid.grid)
-                        
-                        move = grid.findShortestPath(
-                            selectedSquare, gotoSquare, lambda: draw(WIN, grid)
-                        )
+                            for row in grid.grid:
+                                for square in row:
+                                    square.getMovableSquare(grid.grid)
+                            
+                            moved = grid.findShortestPath(
+                                selectedSquare, gotoSquare, lambda: draw(WIN, grid, score)
+                            )
 
-                        if move:
-                            changed = grid.checking(lambda: draw(WIN, grid))
-                            selectedSquare = None
-                            gotoSquare = None
+                            if moved:
+                                point = grid.checking(lambda: draw(WIN, grid, score))
+                                selectedSquare = None
+                                gotoSquare = None
+                                newScore = score + point * 100
 
-                            if not changed:
-                                grid.grownUp()
-                                grid.makeBabies()
+                                while score < newScore:
+                                    score += 100
+                                    pygame.time.delay(50)
+                                    draw(WIN, grid, score)
+                                
+                                score = newScore
+
+                                if point == 0:
+                                    grid.grownUp()
+                                    grid.makeBabies()
+                            
+                            else:
+                                selectedSquare.selected = True
                         
                         else:
-                            selectedSquare.selected = True
+                            selectedSquare.selected = False
+                            spot.selected = True
+                            selectedSquare = spot
                 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_c:
                     selectedSquare = None
                     gotoSquare = None
+                    score = 0
                     grid.resetNewRound()
 
 
