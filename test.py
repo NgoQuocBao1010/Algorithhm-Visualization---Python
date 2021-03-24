@@ -62,7 +62,7 @@ class Spot():
         self.bgColor = WHITE
         self.color = random.choice(list(IMAGES.keys()))
         self.bigImgFile = IMAGES[self.color].get('big')
-        self.smallImg = IMAGES[self.color].get('small')
+        self.smallImgFile = IMAGES[self.color].get('small')
         self.mainImg = None
 
         # animation
@@ -136,6 +136,11 @@ class Spot():
             
             newY = self.y - self.offsetY
             self.mainImg = win.blit(self.bigImgFile, (self.x, newY))
+    
+        elif self.baby:
+            newX = self.x + 15
+            newY = self.y + 15
+            self.mainImg = win.blit(self.smallImgFile, (newX, newY))
 
 
 
@@ -149,6 +154,8 @@ class Grid():
         self.x = (WIN_WIDTH - self.width) / 2
         self.y = WIN_HEIGHT - self.height -  self.marginBottom
         
+        # ...
+        self.babies = []
         self.createNewGrid()
     
     # check if the mouse is clicked inside grid
@@ -204,7 +211,7 @@ class Grid():
 
         self.drawLine(win)
         
-    # generate a random square in grid
+    # return a col and col of a random idle sqot
     def randomSquare(self):
         row = random.randint(0, 8)
         col = random.randint(0, 8)
@@ -215,17 +222,36 @@ class Grid():
             col = random.randint(0, 8)
             ranSquare = self.grid[row][col]
 
-        self.grid[row][col].alive = True
+        return row, col
 
-        return self.grid[row][col]
+    # make 3 random babies
+    def makeBabies(self):
+        self.babies = []
+        while len(self.babies) < 3:
+            newRol, newCol = self.randomSquare()
+            self.grid[newRol][newCol].baby = True
+            self.babies.append(self.grid[newRol][newCol])
 
+    # Reset grid to start new round with 3 grown and 3 baby spots
     def resetNewRound(self):
+        self.createNewGrid()
         newSquares = []
 
-        while len(newSquares) < 10:
-            nSq = self.randomSquare()
-            newSquares.append(nSq)
+        while len(newSquares) < 3:
+            newRol, newCol = self.randomSquare()
+            self.grid[newRol][newCol].alive = True
+            newSquares.append(self.grid[newRol][newCol])
+        
+        self.makeBabies()
     
+    # Make all babies bigger
+    def grownUp(self):
+        for spot in self.babies:
+            spot.baby = False
+            spot.alive = True
+        
+        self.babies = []
+            
     # ****************** BFS Algorithm ****************** #
     def findShortestPath(self, start, end, drawFunc):
         distance = [[-1 for spot in range(self.rows + 1)] for row in range(self.rows + 1)]
@@ -381,10 +407,18 @@ def main():
 
                         if move:
                             selectedSquare = None
-                            end = None
+                            gotoSquare = None
+                            grid.grownUp()
+                            grid.makeBabies()
                         
                         else:
                             selectedSquare.selected = True
+                
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_c:
+                    selectedSquare = None
+                    gotoSquare = None
+                    grid.resetNewRound()
 
 
 main()
