@@ -180,6 +180,7 @@ class Grid():
         self.freeSpots = []
         self.babies = []
         self.lastState = []
+        self.lastScore = 0
         self.createNewGrid()
     
     # check if the mouse is clicked inside grid
@@ -247,9 +248,14 @@ class Grid():
     def makeBabies(self):
         self.babies = []
         while len(self.babies) < 3:
-            newRol, newCol = self.randomSquare()
-            self.grid[newRol][newCol].baby = True
-            self.babies.append(self.grid[newRol][newCol])
+            newRow, newCol = self.randomSquare()
+
+            if self.grid[newRow][newCol].baby:
+                continue
+        
+            self.grid[newRow][newCol].baby = True
+            self.babies.append(self.grid[newRow][newCol])
+        print()
 
     # Reset grid to start new round with 3 grown and 3 baby spots
     def resetNewRound(self):
@@ -257,13 +263,14 @@ class Grid():
         newSquares = []
 
         while len(newSquares) < 3:
-            newRol, newCol = self.randomSquare()
+            newRow, newCol = self.randomSquare()
 
-            if self.grid[newRol][newCol].baby:
+            if self.grid[newRow][newCol].baby:
                 continue
 
-            self.grid[newRol][newCol].makeAlive()
-            newSquares.append(self.grid[newRol][newCol])
+            self.grid[newRow][newCol].makeAlive()
+            self.freeSpots.remove((newRow, newCol))
+            newSquares.append(self.grid[newRow][newCol])
         
         self.makeBabies()
         self.saveSate()
@@ -277,8 +284,10 @@ class Grid():
         self.babies = []
     
     # Save current state
-    def saveSate(self):
+    def saveSate(self, score=0):
         self.lastState = []
+        self.lastBabies = []
+        self.lastScore = score
 
         for row in range(self.rows):
             self.lastState.append([])
@@ -287,10 +296,16 @@ class Grid():
                 spot.update(self.grid[row][col])
                 self.lastState[row].append(spot)
 
+                if spot.baby:
+                    self.lastBabies.append(spot)
+
 
     # Undo previous move
     def undo(self):
         self.grid = self.lastState
+        self.babies = self.lastBabies
+
+        return self.lastScore
         
     
     # checking grid conditions
@@ -365,7 +380,7 @@ class Grid():
             spot.makeDead()
             spot.draw(WIN)
             self.drawLine(WIN)
-            time.sleep(0.08)
+            time.sleep(0.01)
             point += 1
             pygame.display.update()
         
@@ -394,10 +409,6 @@ class Grid():
 
     # ****************** BFS Algorithm ****************** #
     def findShortestPath(self, start, end, drawFunc):
-        self.saveSate()
-
-
-        print('Moved')
         distance = [[-1 for spot in range(self.rows + 1)] for row in range(self.rows + 1)]
         prev = [[None for spot in range(self.rows + 1)] for row in range(self.rows + 1)]
         path = []
@@ -529,6 +540,7 @@ def main():
     gotoSquare = None
 
     score = 0
+    prevScore = 0
 
     clock = pygame.time.Clock()
     run = True
@@ -567,6 +579,7 @@ def main():
                                 for square in row:
                                     square.getMovableSquare(grid.grid)
                             
+                            grid.saveSate(score)
                             moved = grid.findShortestPath(
                                 selectedSquare, gotoSquare, lambda: draw(WIN, grid, score)
                             )
@@ -597,7 +610,7 @@ def main():
                     grid.resetNewRound()
 
                 elif event.key == pygame.K_u:
-                    grid.undo()
+                    score = grid.undo()
 
 
 main()
