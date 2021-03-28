@@ -10,7 +10,8 @@ WIN_WIDTH = WIN_HEIGHT = 600                                # height and width o
 WIN = pygame.display.set_mode((WIN_WIDTH, WIN_WIDTH))       # initilize win form
 pygame.display.set_caption("LINE 98")                       # win caption
 SCORE_TEXT_FONT = pygame.font.SysFont('Courier', 30, bold=True)
-SCORE_FONT = pygame.font.SysFont('Courier', 40, bold=True)
+SCORE_FONT = pygame.font.Font('CursedTimerUlil-Aznm.ttf', 30, bold=True)
+BUTTON_FONT = pygame.font.Font('Poppins-Bold.ttf', 18)
 
 
 # Grid Configuration
@@ -19,13 +20,13 @@ GAP = 50                                                    # width of each squa
 ROWS = COLS = 9
 
 # Color Variables
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
+RED = (224, 62, 78)
+BLUE = (62, 119, 224)
 YELLOW = (255, 255, 0)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 TURQUOISE = (64, 224, 208)
+GREEN = (62, 224, 86)
 
 
 ICON_IMAGES = pygame.image.load('./images/line98.png')
@@ -121,6 +122,7 @@ class Spot():
         self.alive = otherSpot.alive
         self.baby = otherSpot.baby
         self.color = otherSpot.color
+        self.selected = otherSpot.selected
 
     # Make spot became bigger
     def makeAlive(self):
@@ -255,7 +257,6 @@ class Grid():
         
             self.grid[newRow][newCol].baby = True
             self.babies.append(self.grid[newRow][newCol])
-        print()
 
     # Reset grid to start new round with 3 grown and 3 baby spots
     def resetNewRound(self):
@@ -307,8 +308,8 @@ class Grid():
 
         return self.lastScore
         
-    
     # checking grid conditions
+    # Delete and increase score
     def checking(self, currentScore):
         point = 0
         deleteSpots = []
@@ -380,7 +381,7 @@ class Grid():
             spot.makeDead()
             spot.draw(WIN)
             self.drawLine(WIN)
-            time.sleep(0.01)
+            pygame.time.delay(70)
             point += 1
             pygame.display.update()
         
@@ -391,8 +392,8 @@ class Grid():
             currentScore += 1
             scoreText = SCORE_FONT.render(f"{currentScore}", True, WHITE)
             WIN.blit(SCORE_DISPLAY, (225, 70))
-            WIN.blit(scoreText, (240, 75))
-            pygame.time.delay(40)
+            WIN.blit(scoreText, (240, 80))
+            pygame.time.delay(50)
             pygame.display.update()
         
 
@@ -508,20 +509,61 @@ class Grid():
         return path
 
 
+# $$$$$$$$$$$$********* Button $$$$$$$$$$$$********* #
+class Button():
+    def __init__(self, x, y, width=120, height=30, text="A button", fontColor=WHITE, bgColor=BLACK):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.text = text
+        self.fontColor = fontColor
+        self.bgColor = bgColor
+
+    def draw(self, win):
+        pygame.draw.rect(win, self.bgColor, (self.x, self.y, self.width, self.height))
+
+        # Center the text
+        text = BUTTON_FONT.render(self.text, True, self.fontColor)
+        textWidth, textHeight = text.get_size()
+        textX = self.x + (self.width - textWidth) // 2
+        textY = self.y + (self.height - textHeight) // 2
+        
+        win.blit(text, (textX, textY))
+    
+    def isClicked(self, pos):
+        mouseX, mouseY = pos
+
+        if mouseX < self.x or mouseX > self.x + self.width:
+            return False
+        
+        if mouseY < self.y or mouseY > self.y + self.height:
+            return False
+
+        return True
+
+
+
+
 # Update main win everey frame
-def draw(win, grid, score=0):
+def draw(win, grid, buttons, score=0):
     win.fill(TURQUOISE)
     grid.draw(win)
     
     win.blit(ICON_IMAGES, (75, 10))
 
     # score text
-    text = SCORE_TEXT_FONT.render("Score", True, (255, 0, 0))
+    text = SCORE_TEXT_FONT.render("Score", True, RED)
     win.blit(text, (225, 40))
 
     scoreText = SCORE_FONT.render(f"{score}", True, WHITE)
     win.blit(SCORE_DISPLAY, (225, 70))
-    win.blit(scoreText, (240, 75))
+    win.blit(scoreText, (240, 80))
+
+    # Buttons
+    for btn in buttons:
+        btn.draw(win)
+    
     pygame.display.update()
 
 
@@ -536,26 +578,32 @@ def main():
     grid = Grid()
     grid.resetNewRound()
 
+    buttons = []
+
+    y = 10
+    for title in ['New Game', 'Undo', 'HighScores']:
+        btn = Button(x=405, y=y, text=title, bgColor=(247, 245, 141), fontColor=(70, 73, 242))
+        buttons.append(btn)
+        y += 40
+
     selectedSquare = None
     gotoSquare = None
 
     score = 0
-    prevScore = 0
 
     clock = pygame.time.Clock()
     run = True
     while run:
         clock.tick(60)
-        draw(WIN, grid, score)
+        draw(WIN, grid, buttons, score)
         score += grid.checking(score)
         for event in pygame.event.get():
+            pos = pygame.mouse.get_pos()
             if event.type == pygame.QUIT:
                 run = False
                 break
             
             if pygame.mouse.get_pressed()[0]:
-                pos = pygame.mouse.get_pos()
-                
                 if grid.isCliked(pos):
                     row, col = grid.getPosition(pos)
                     spot = grid.grid[row][col]
@@ -581,7 +629,7 @@ def main():
                             
                             grid.saveSate(score)
                             moved = grid.findShortestPath(
-                                selectedSquare, gotoSquare, lambda: draw(WIN, grid, score)
+                                selectedSquare, gotoSquare, lambda: draw(WIN, grid, buttons, score)
                             )
 
                             if moved:
@@ -602,15 +650,16 @@ def main():
                             spot.selected = True
                             selectedSquare = spot
                 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_c:
-                    selectedSquare = None
-                    gotoSquare = None
-                    score = 0
-                    grid.resetNewRound()
-
-                elif event.key == pygame.K_u:
-                    score = grid.undo()
+                for button in buttons:
+                    if button.isClicked(pos):
+                        if button.text == "New Game":
+                            selectedSquare = None
+                            gotoSquare = None
+                            score = 0
+                            grid.resetNewRound()
+                        
+                        if button.text == "Undo":
+                            score = grid.undo()
 
 
 main()
